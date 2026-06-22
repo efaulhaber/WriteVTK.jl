@@ -111,8 +111,13 @@ function write_array(io, data::Tuple)
 end
 
 function _can_compress_in_parallel(data::AbstractArray{T}) where {T}
+    nbytes = length(data) * sizeof(T)
+    block_size = _compression_block_size(nbytes)
+
     # Only dense bitstype arrays can be split into VTK compression blocks in a useful way.
-    data isa DenseArray && isbitstype(T) && !isempty(data)
+    # If we can't split the data into at least 2 full blocks,
+    # then parallel compression is not worth it.
+    return data isa DenseArray && isbitstype(T) && 2 * block_size <= nbytes
 end
 _can_compress_in_parallel(data) = false
 
